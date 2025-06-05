@@ -2,7 +2,7 @@
 import React from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { Product } from '../types';
-import { useCart } from '../hooks/useCart';
+import { useCart } from '../contexts/CartContext';
 
 interface ProductCardProps {
   product: Product;
@@ -14,6 +14,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onProductClick }) =>
 
   const handleQuickShop = (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log('Quick shop button clicked for product:', product.name);
     if (product.inStock) {
       // Get default attributes (first option for each attribute)
       const defaultAttributes: { [key: string]: string } = {};
@@ -22,6 +23,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onProductClick }) =>
           defaultAttributes[attr.id] = attr.items[0].value;
         }
       });
+      console.log('Calling addToCart with:', product.name, defaultAttributes);
       addToCart(product, defaultAttributes);
     }
   };

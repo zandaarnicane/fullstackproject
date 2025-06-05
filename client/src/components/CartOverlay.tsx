@@ -1,12 +1,19 @@
 
 import React from 'react';
 import { X, Plus, Minus } from 'lucide-react';
-import { useCart } from '../hooks/useCart';
+import { useCart } from '../contexts/CartContext';
 
 const CartOverlay: React.FC = () => {
   const { cartItems, isCartOpen, setIsCartOpen, updateQuantity, getTotalPrice, getTotalItems, clearCart } = useCart();
 
-  if (!isCartOpen) return null;
+  console.log('CartOverlay component render - isCartOpen:', isCartOpen, 'cartItems length:', cartItems.length);
+
+  if (!isCartOpen) {
+    console.log('CartOverlay not rendering because isCartOpen is false');
+    return null;
+  }
+
+  console.log('CartOverlay IS RENDERING because isCartOpen is true');
 
   const totalItems = getTotalItems();
 
@@ -22,7 +29,13 @@ const CartOverlay: React.FC = () => {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsCartOpen(false)} />
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 z-40" 
+        onClick={() => {
+          console.log('Backdrop clicked, closing cart');
+          setIsCartOpen(false);
+        }} 
+      />
       
       {/* Cart Overlay */}
       <div className="fixed top-0 right-0 h-full w-96 bg-white shadow-xl z-50 overflow-y-auto">
@@ -33,7 +46,10 @@ const CartOverlay: React.FC = () => {
               My Bag, {totalItems === 1 ? '1 Item' : `${totalItems} Items`}
             </h2>
             <button
-              onClick={() => setIsCartOpen(false)}
+              onClick={() => {
+                console.log('Close button clicked');
+                setIsCartOpen(false);
+              }}
               className="p-1 text-gray-400 hover:text-gray-600"
             >
               <X className="w-6 h-6" />

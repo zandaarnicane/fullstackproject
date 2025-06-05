@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { ShoppingCart } from 'lucide-react';
-import { useCart } from '../hooks/useCart';
+import { useCart } from '../contexts/CartContext';
 
 interface HeaderProps {
   activeCategory: string;
@@ -12,6 +12,11 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ activeCategory, onCategoryChange, categories }) => {
   const { getTotalItems, setIsCartOpen } = useCart();
   const totalItems = getTotalItems();
+
+  const handleCartClick = () => {
+    console.log('Cart button clicked, setting isCartOpen to true');
+    setIsCartOpen(true);
+  };
 
   return (
     <header className="bg-white shadow-sm border-b">
@@ -37,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({ activeCategory, onCategoryChange, categ
           <div className="relative">
             <button
               data-testid="cart-btn"
-              onClick={() => setIsCartOpen(true)}
+              onClick={handleCartClick}
               className="bg-white text-black p-3 rounded-full hover:bg-gray-100 transition-colors"
             >
               <ShoppingCart className="w-5 h-5" />

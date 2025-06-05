@@ -4,9 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import ProductListing from '../components/ProductListing';
 import ProductDetail from '../components/ProductDetail';
-import CartOverlay from '../components/CartOverlay';
 import { mockProducts, categories } from '../data/mockData';
-import { useCart } from '../hooks/useCart';
+import { useCart } from '../contexts/CartContext';
 
 const Index = () => {
   const { id: productId } = useParams();
@@ -52,8 +51,6 @@ const Index = () => {
           />
         )}
       </main>
-
-      <CartOverlay />
     </div>
   );
 };

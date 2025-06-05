@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import parse from 'html-react-parser';
 import { Product } from '../types';
-import { useCart } from '../hooks/useCart';
+import { useCart } from '../contexts/CartContext';
 
 interface ProductDetailProps {
   product: Product;
