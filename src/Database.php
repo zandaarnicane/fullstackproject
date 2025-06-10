@@ -11,16 +11,26 @@ class Database
 
     public function __construct()
     {
-        $dbConfig = require base_path('src/config/database.php') ?? [];
-        $dsn = 'mysql:' . http_build_query($dbConfig, arg_separator: ';');
+        $dbConfig = require __DIR__ . '/config/database.php';
+
+        $dsn = sprintf(
+            'mysql:host=%s;port=%s;dbname=%s;charset=%s',
+            $dbConfig['host'] ?? 'localhost',
+            $dbConfig['port'] ?? '3306',
+            $dbConfig['dbname'] ?? '',
+            $dbConfig['charset'] ?? 'utf8mb4'
+        );
+
+        $user = $dbConfig['user'] ?? null;
+        $password = $dbConfig['password'] ?? null;
 
         try {
-            $this->connection = new PDO($dsn, options: [
+            $this->connection = new PDO($dsn, $user, $password, [
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             ]);
         } catch (\Exception $e) {
-            // dd('Connection failed: ' . $e->getMessage());
-            abort(500, 'Database connection failed');
+            abort(500, 'Database connection failed: ' . $e->getMessage());
         }
     }
 

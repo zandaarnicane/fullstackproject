@@ -6,7 +6,7 @@ use App\Models\Order;
 use App\Database;
 use App\Models\OrderItem;
 
-class OrdersResolver
+class OrderResolver
 {
     public static function store(array $args): string
     {

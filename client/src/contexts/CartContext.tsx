@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem, Product } from '../types';
+import { addToCartAPI } from '../api/cart';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -18,111 +19,87 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  console.log('CartProvider render - isCartOpen:', isCartOpen, 'cartItems length:', cartItems.length, 'initialized:', isInitialized);
+  const addToCart = async (product: Product, selectedAttributes: { [key: string]: string }) => {
+    console.log('addToCart (server mode) called with:', product.name, selectedAttributes);
 
-  useEffect(() => {
     try {
-      const savedCart = localStorage.getItem('cart');
-      if (savedCart) {
-        setCartItems(JSON.parse(savedCart));
-      }
-    } catch (error) {
-      console.error('Error loading cart from localStorage:', error);
+    const quantity = 1;
+    const price = product.prices[0].amount;
+
+    // Sagatavo attributes formātā: [{ key: 'Color', value: 'Red' }, ...]
+    const attributesArray = Object.entries(selectedAttributes).map(([key, value]) => ({
+      key,
+      value,
+    }));
+
+    const updatedCart = await addToCartAPI(
+      Number(product.id),
+      product.name,
+      price,
+      quantity,
+      attributesArray
+    );
+
+    if (!updatedCart) {
+      console.warn('No cart returned from server');
+      return;
     }
-    setIsInitialized(true);
-  }, []);
 
-  useEffect(() => {
-    if (isInitialized) {
-      try {
-        localStorage.setItem('cart', JSON.stringify(cartItems));
-      } catch (error) {
-        console.error('Error saving cart to localStorage:', error);
-      }
-    }
-  }, [cartItems, isInitialized]);
+    const newItems: CartItem[] = updatedCart.items.map((item: any) => ({
+      product: {
+        id: item.productId,
+        name: item.name,
+        prices: [{ currency: "USD", amount: item.price }],
+      },
+      quantity: item.quantity,
+      selectedAttributes: selectedAttributes, // Saglabā izvēlētās atribūtvērtības
+    }));
 
-  const addToCart = (product: Product, selectedAttributes: { [key: string]: string }) => {
-    console.log('addToCart called with product:', product.name, 'attributes:', selectedAttributes);
-    setCartItems(prevItems => {
-      const existingItemIndex = prevItems.findIndex(
-        item => 
-          item.product.id === product.id && 
-          JSON.stringify(item.selectedAttributes) === JSON.stringify(selectedAttributes)
-      );
-
-      if (existingItemIndex >= 0) {
-        const newItems = [...prevItems];
-        newItems[existingItemIndex].quantity += 1;
-        console.log('Updated existing item quantity to:', newItems[existingItemIndex].quantity);
-        return newItems;
-      } else {
-        console.log('Adding new item to cart');
-        return [...prevItems, { product, quantity: 1, selectedAttributes }];
-      }
-    });
-    console.log('Setting isCartOpen to true');
+    setCartItems(newItems);
     setIsCartOpen(true);
-  };
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+  }
+};
 
-  const updateQuantity = (itemIndex: number, newQuantity: number) => {
-    console.log('updateQuantity called with index:', itemIndex, 'newQuantity:', newQuantity);
-    if (newQuantity === 0) {
-      setCartItems(prevItems => prevItems.filter((_, index) => index !== itemIndex));
-    } else {
-      setCartItems(prevItems => {
-        const newItems = [...prevItems];
-        newItems[itemIndex].quantity = newQuantity;
-        return newItems;
-      });
-    }
+  const updateQuantity = async (itemIndex: number, newQuantity: number) => {
+    console.log('updateQuantity is not supported in server mode directly.');
+    // Optional: Add API call here to update quantity via GraphQL if backend supports it
   };
 
   const getTotalPrice = () => {
     return cartItems.reduce((total, item) => {
-      return total + (item.product.prices[0].amount * item.quantity);
+      return total + item.quantity * item.product.prices[0].amount;
     }, 0);
   };
 
   const getTotalItems = () => {
-    const total = cartItems.reduce((total, item) => total + item.quantity, 0);
-    console.log('getTotalItems called, returning:', total);
-    return total;
+    return cartItems.reduce((total, item) => total + item.quantity, 0);
   };
 
   const clearCart = () => {
-    console.log('clearCart called');
-    setCartItems([]);
-    setIsCartOpen(false);
+    console.log('clearCart is not implemented in server mode.');
+    // Optional: Add GraphQL mutation to clear cart server-side
   };
 
-  const value = {
+  const value: CartContextType = {
     cartItems,
     isCartOpen,
-    setIsCartOpen: (value: boolean) => {
-      console.log('setIsCartOpen called with value:', value);
-      setIsCartOpen(value);
-    },
+    setIsCartOpen,
     addToCart,
     updateQuantity,
     getTotalPrice,
     getTotalItems,
-    clearCart
+    clearCart,
   };
-
-  if (!isInitialized) {
-    return <div>Loading cart...</div>;
-  }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
 
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (context === undefined) {
-    console.error('useCart must be used within a CartProvider - context is undefined');
+  if (!context) {
     throw new Error('useCart must be used within a CartProvider');
   }
   return context;

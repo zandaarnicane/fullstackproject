@@ -11,6 +11,7 @@ use RuntimeException;
 use Throwable;
 use App\Controller\Resolvers\OrderResolver;
 use App\Controller\Types\OrderInputType;
+use App\Controller\Resolvers\CartResolver;
 
 class GraphQL {
     static public function handle() {
@@ -24,6 +25,10 @@ class GraphQL {
                             'message' => ['type' => Type::string()],
                         ],
                         'resolve' => static fn ($rootValue, array $args): string => $rootValue['prefix'] . $args['message'],
+                    ],
+                    'cart' => [
+                        'type' => CartResolver::getCartType(),
+                        'resolve' => fn() => CartResolver::getCart(),
                     ],
                 ],
             ]);
@@ -45,14 +50,43 @@ class GraphQL {
                             'input' => ['type' => new OrderInputType()],
                         ],
                         'resolve' => function ($root, $args) {
-                            return OrdersResolver::store($args['input']);
+                            return OrderResolver::store($args['input']);
                         },
+                    ],
+                    'addToCart' => [
+                        'type' => CartResolver::getCartType(),
+                        'args' => [
+                            'productId' => Type::nonNull(Type::int()),
+                            'name' => Type::nonNull(Type::string()),
+                            'price' => Type::nonNull(Type::float()),
+                            'quantity' => Type::nonNull(Type::int()),
+                            'attributes' => Type::listOf(
+                                new ObjectType([
+                                    'name' => 'AttributeInput',
+                                    'fields' => [
+                                        'key' => Type::nonNull(Type::string()),
+                                        'value' => Type::nonNull(Type::string()),
+                                    ],
+                                ])
+                            ),
+                            'total' => Type::nonNull(Type::float()),
+                        ],
+                        'resolve' => fn($root, $args) => CartResolver::addToCart($args['productId'], $args['quantity']),
+                    ],
+                    'updateCartItem' => [
+                        'type' => CartResolver::getCartType(),
+                        'args' => [
+                            'productId' => Type::nonNull(Type::int()),
+                            'quantity' => Type::nonNull(Type::int()),
+                        ],
+                        'resolve' => fn($root, $args) => CartResolver::updateCartItem($args['productId'], $args['quantity']),
                     ],
                 ],
             ]);
             
             // See docs on schema options:
             // https://webonyx.github.io/graphql-php/schema-definition/#configuration-options
+        
             $schema = new Schema(
                 (new SchemaConfig())
                 ->setQuery($queryType)
