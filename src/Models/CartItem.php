@@ -9,10 +9,11 @@ class CartItem
 {
     public static function getAllByUserId(Database $db, int $userId): array
     {
-        return $db->query(
+        $stmt = $db->query(
             'SELECT * FROM cart_items WHERE user_id = ?',
             [$userId]
-        )->fetchAll(PDO::FETCH_ASSOC);
+        );
+        return $stmt instanceof \PDOStatement ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
     }
 
     public static function add(Database $db, int $userId, int $productId, int $quantity, array $attributes = []): array
