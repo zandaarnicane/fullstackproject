@@ -1,20 +1,32 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import Header from '../components/Header';
 import ProductListing from '../components/ProductListing';
 import ProductDetail from '../components/ProductDetail';
-import { mockProducts, categories } from '../data/mockData';
+import { fetchProducts } from '../api/getProducts';
 import { useCart } from '../contexts/CartContext';
 
 const Index = () => {
   const { id: productId } = useParams();
   const navigate = useNavigate();
-  const [activeCategory, setActiveCategory] = useState('all');
   const { isCartOpen } = useCart();
 
-  const currentProduct = productId ? mockProducts.find(p => p.id === productId) : null;
-  const currentCategoryProducts = categories.find(c => c.name === activeCategory)?.products || [];
+  const {
+    data: products = [],
+    isLoading,
+    error,
+  } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
+
+  const categoryList: string[] = Array.from(new Set(products.map((p) => p.category)));
+  const [activeCategory, setActiveCategory] = React.useState('All');
+
+  const currentProduct = productId ? products.find((p) => p.id === productId) : null;
+  const currentCategoryProducts =
+    activeCategory === 'All'
+      ? products
+      : products.filter((p) => p.category === activeCategory);
 
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
@@ -25,22 +37,29 @@ const Index = () => {
     navigate(`/product/${id}`);
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (productId && currentProduct) {
       setActiveCategory(currentProduct.category);
     }
   }, [productId, currentProduct]);
+
+  if (isLoading) return <div className="p-8 text-center">Loading products...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">Error loading products.</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
         activeCategory={activeCategory}
         onCategoryChange={handleCategoryChange}
-        categories={categories.map(c => c.name)}
+        categories={['All', ...categoryList]}
       />
-      
+
       {/* Main Content with overlay effect when cart is open */}
-      <main className={`${isCartOpen ? 'opacity-30 pointer-events-none' : ''} transition-opacity duration-200`}>
+      <main
+        className={`${
+          isCartOpen ? 'opacity-30 pointer-events-none' : ''
+        } transition-opacity duration-200`}
+      >
         {currentProduct ? (
           <ProductDetail product={currentProduct} />
         ) : (

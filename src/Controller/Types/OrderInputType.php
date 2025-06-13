@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Controller\Types;
@@ -13,7 +14,7 @@ class OrderInputType extends InputObjectType
             'name' => 'OrderInput',
             'fields' => [
                 'items' => [
-                    'type' => Type::listOf(new OrderItemInputType())
+                    'type' => Type::nonNull(Type::listOf(new OrderItemInputType()))
                 ],
             ],
         ]);

@@ -24,11 +24,17 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
     return product.attributes.every(attr => selectedAttributes[attr.id]);
   };
 
-  const handleAddToCart = () => {
-    if (isAddToCartEnabled() && product.inStock) {
-      addToCart(product, selectedAttributes);
+  const handleAddToCart = async () => {
+  if (isAddToCartEnabled() && product.inStock) {
+    try {
+      await addToCart(product, selectedAttributes); // <-- būtiski!
+      console.log('✅ Produkts pievienots!');
+    } catch (e) {
+      console.error('❌ Neizdevās pievienot grozam', e);
     }
-  };
+  }
+};
+
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % product.gallery.length);
@@ -61,14 +67,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
                 </button>
               ))}
             </div>
-            
+
             <div data-testid="product-gallery" className="flex-1 relative">
               <img
                 src={product.gallery[currentImageIndex]}
                 alt={product.name}
                 className="w-full h-96 object-cover"
               />
-              
+
               {product.gallery.length > 1 && (
                 <>
                   <button
@@ -105,7 +111,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
               <div className="flex flex-wrap gap-2">
                 {attribute.items.map((item) => {
                   const isSelected = selectedAttributes[attribute.id] === item.value;
-                  
+
                   if (attribute.type === 'swatch') {
                     return (
                       <button

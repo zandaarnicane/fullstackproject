@@ -1,103 +1,174 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { CartItem, Product } from '../types';
-import { addToCartAPI } from '../api/cart';
+
+const GRAPHQL_ENDPOINT = '/graphql';
 
 interface CartContextType {
   cartItems: CartItem[];
   isCartOpen: boolean;
   setIsCartOpen: (value: boolean) => void;
-  addToCart: (product: Product, selectedAttributes: { [key: string]: string }) => void;
-  updateQuantity: (itemIndex: number, newQuantity: number) => void;
+  addToCart: (product: Product, selectedAttributes: { [key: string]: string }) => Promise<void>;
+  updateQuantity: (
+    productId: string,
+    selectedAttributes: { [key: string]: string },
+    quantity: number
+  ) => Promise<void>;
   getTotalPrice: () => number;
   getTotalItems: () => number;
   clearCart: () => void;
+  fetchCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const addToCart = async (product: Product, selectedAttributes: { [key: string]: string }) => {
-    console.log('addToCart (server mode) called with:', product.name, selectedAttributes);
-
+  const fetchCart = async () => {
     try {
-    const quantity = 1;
-    const price = product.prices[0].amount;
-
-    // Sagatavo attributes formātā: [{ key: 'Color', value: 'Red' }, ...]
-    const attributesArray = Object.entries(selectedAttributes).map(([key, value]) => ({
-      key,
-      value,
-    }));
-
-    const updatedCart = await addToCartAPI(
-      Number(product.id),
-      product.name,
-      price,
-      quantity,
-      attributesArray
-    );
-
-    if (!updatedCart) {
-      console.warn('No cart returned from server');
-      return;
+      const response = await fetch(GRAPHQL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `query { cart { items { productId name price quantity attributes } } }`
+        }),
+      });
+      const result = await response.json();
+      const items = result.data?.cart?.items || [];
+      setCartItems(
+        items.map((item: any) => ({
+          product: {
+            id: item.productId.toString(),
+            name: item.name,
+            prices: [{ currency: 'USD', amount: item.price }],
+            gallery: [],
+            brand: '',
+            attributes: [],
+          },
+          quantity: item.quantity,
+          selectedAttributes: (item.attributes || []).reduce((acc: any, attr: any) => {
+            acc[attr.key] = attr.value;
+            return acc;
+          }, {}),
+        }))
+      );
+    } catch (error) {
+      console.error('❌ Failed to fetch cart:', error);
     }
+  };
 
-    const newItems: CartItem[] = updatedCart.items.map((item: any) => ({
-      product: {
-        id: item.productId,
-        name: item.name,
-        prices: [{ currency: "USD", amount: item.price }],
-      },
-      quantity: item.quantity,
-      selectedAttributes: selectedAttributes, // Saglabā izvēlētās atribūtvērtības
-    }));
+  // ✅ Automātiski ielādē groza saturu uz lapas ielādi
+  useEffect(() => {
+    fetchCart();
+  }, []);
 
-    setCartItems(newItems);
-    setIsCartOpen(true);
-  } catch (error) {
-    console.error('Error adding to cart:', error);
-  }
-};
+  const addToCart = async (product: Product, selectedAttributes: { [key: string]: string }) => {
+    try {
+      const attributeList = Object.entries(selectedAttributes).map(([key, value]) => ({ key, value }));
+      const total = product.prices[0].amount;
+      const response = await fetch(GRAPHQL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `
+            mutation AddToCart($productId: Int!, $name: String!, $price: Float!, $quantity: Int!, $attributes: [CartItemAttributeInput!], $total: Float!) {
+              addToCart(productId: $productId, name: $name, price: $price, quantity: $quantity, attributes: $attributes, total: $total) {
+                items { productId name price quantity attributes }
+              }
+            }
+          `,
+          variables: {
+            productId: parseInt(product.id),
+            name: product.name,
+            price: total,
+            quantity: 1,
+            attributes: attributeList,
+            total,
+          },
+        }),
+      });
 
-  const updateQuantity = async (itemIndex: number, newQuantity: number) => {
-    console.log('updateQuantity is not supported in server mode directly.');
-    // Optional: Add API call here to update quantity via GraphQL if backend supports it
+      const result = await response.json();
+      if (result.errors) {
+        console.error('❌ GraphQL errors:', result.errors);
+      } else {
+        console.log('✅ Item added to cart:', result.data);
+        await fetchCart();
+        setIsCartOpen(true);
+      }
+    } catch (error) {
+      console.error('❌ Failed to add to cart:', error);
+    }
+  };
+
+  const updateQuantity = async (
+    productId: string,
+    selectedAttributes: { [key: string]: string },
+    quantity: number
+  ) => {
+    try {
+      const response = await fetch(GRAPHQL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `mutation UpdateCartItem($productId: Int!, $quantity: Int!, $attributes: [CartItemAttributeInput!]) {
+            updateCartItem(productId: $productId, quantity: $quantity, attributes: $attributes) {
+              items { productId name price quantity attributes }
+            }
+          }`,
+          variables: {
+            productId: parseInt(productId),
+            quantity,
+            attributes: Object.entries(selectedAttributes).map(([key, value]) => ({ key, value }))
+          },
+        }),
+      });
+      await fetchCart();
+    } catch (error) {
+      console.error('❌ Failed to update quantity:', error);
+    }
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+    setIsCartOpen(false);
   };
 
   const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => {
-      return total + item.quantity * item.product.prices[0].amount;
-    }, 0);
+    return cartItems.reduce((total, item) => total + item.product.prices[0].amount * item.quantity, 0);
   };
 
   const getTotalItems = () => {
     return cartItems.reduce((total, item) => total + item.quantity, 0);
   };
 
-  const clearCart = () => {
-    console.log('clearCart is not implemented in server mode.');
-    // Optional: Add GraphQL mutation to clear cart server-side
-  };
-
-  const value: CartContextType = {
-    cartItems,
-    isCartOpen,
-    setIsCartOpen,
-    addToCart,
-    updateQuantity,
-    getTotalPrice,
-    getTotalItems,
-    clearCart,
-  };
-
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider
+      value={{
+        cartItems,
+        isCartOpen,
+        setIsCartOpen,
+        addToCart,
+        updateQuantity,
+        getTotalPrice,
+        getTotalItems,
+        clearCart,
+        fetchCart,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
 };
 
-export const useCart = () => {
+export const useCart = (): CartContextType => {
   const context = useContext(CartContext);
   if (!context) {
     throw new Error('useCart must be used within a CartProvider');

@@ -11,6 +11,12 @@ class CartResolver
     private static ?ObjectType $cartItemType = null;
     private static ?ObjectType $cartType = null;
 
+    private static function startSession(): void {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+    }
+
     public static function getCartItemAttributeType(): ObjectType
     {
         if (!self::$cartItemAttributeType) {
@@ -57,16 +63,15 @@ class CartResolver
         return self::$cartType;
     }
 
-    // 👉 Groza iegūšana (te vēlāk varam ielikt arī datubāzes vaicājumu)
     public static function getCart(): array
     {
-        session_start();
+        self::startSession();
         $cart = $_SESSION['cart'] ?? [];
 
         $items = [];
         $total = 0;
 
-        foreach ($cart as $key => $item) {
+        foreach ($cart as $item) {
             $itemTotal = $item['price'] * $item['quantity'];
 
             $attributesList = [];
@@ -90,5 +95,78 @@ class CartResolver
             'items' => $items,
             'total' => $total,
         ];
+    }
+
+    public static function addToCart(
+        int $productId,
+        int $quantity,
+        string $name,
+        float $price,
+        array $attributes = [],
+        float $total = 0
+    ): array {
+        self::startSession();
+        $cart = $_SESSION['cart'] ?? [];
+
+        // Pārvēršam atribūtus uz sakārtotu key => value
+        ksort($attributes);
+
+        foreach ($cart as &$item) {
+            $itemAttrs = $item['attributes'] ?? [];
+            ksort($itemAttrs);
+
+            if ($item['productId'] === $productId && $itemAttrs == $attributes) {
+                $item['quantity'] += $quantity;
+                $item['total'] = $item['price'] * $item['quantity'];
+                $_SESSION['cart'] = $cart;
+                return self::getCart();
+            }
+        }
+
+        $cart[] = [
+            'productId' => $productId,
+            'name' => $name,
+            'price' => $price,
+            'quantity' => $quantity,
+            'attributes' => $attributes,
+            'total' => $total ?: ($price * $quantity),
+        ];
+
+        $_SESSION['cart'] = $cart;
+        return self::getCart();
+    }
+
+    public static function updateCartItem(
+        int $productId,
+        int $quantity,
+        string $name = '',
+        float $price = 0,
+        array $attributes = [],
+        float $total = 0
+    ): array {
+        self::startSession();
+        $cart = $_SESSION['cart'] ?? [];
+
+        ksort($attributes);
+
+        foreach ($cart as &$item) {
+            $itemAttrs = $item['attributes'] ?? [];
+            ksort($itemAttrs);
+
+            if ($item['productId'] === $productId && $itemAttrs == $attributes) {
+                $item['quantity'] = $quantity;
+                $item['total'] = $item['price'] * $quantity;
+                break;
+            }
+        }
+
+        $_SESSION['cart'] = $cart;
+        return self::getCart();
+    }
+
+    public static function clearCart(): void
+    {
+        self::startSession();
+        $_SESSION['cart'] = [];
     }
 }
