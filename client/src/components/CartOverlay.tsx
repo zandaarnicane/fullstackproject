@@ -52,17 +52,22 @@ const CartOverlay: React.FC = () => {
   return (
     <>
       <div
+        data-testid="cart-overlay-backdrop"
         className="fixed inset-0 bg-black bg-opacity-50 z-40"
         onClick={() => setIsCartOpen(false)}
       />
 
-      <div className="fixed top-0 right-0 h-full w-96 bg-white shadow-xl z-50 overflow-y-auto">
+      <div
+        data-testid="cart-overlay"
+        className="fixed top-0 right-0 h-full w-96 bg-white shadow-xl z-50 overflow-y-auto"
+      >
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-medium">
+            <h2 data-testid="cart-title" className="text-lg font-medium">
               My Bag, {getTotalItems()} Item{getTotalItems() !== 1 ? 's' : ''}
             </h2>
             <button
+              data-testid="cart-close-btn"
               onClick={() => setIsCartOpen(false)}
               className="p-1 text-gray-400 hover:text-gray-600"
             >
@@ -70,9 +75,9 @@ const CartOverlay: React.FC = () => {
             </button>
           </div>
 
-          <div className="space-y-6 mb-6">
+          <div data-testid="cart-items" className="space-y-6 mb-6">
             {cartItems.map((item, index) => (
-              <div key={index} className="border-b border-gray-200 pb-6">
+              <div key={index} data-testid={`cart-item-${index}`} className="border-b border-gray-200 pb-6">
                 <div className="flex space-x-4">
                   <div className="w-20 h-24 bg-gray-100 flex items-center justify-center">
                     {item.product.gallery?.[0] ? (
@@ -94,7 +99,7 @@ const CartOverlay: React.FC = () => {
                     </p>
 
                     {Object.entries(item.selectedAttributes).map(([key, value]) => (
-                      <div key={key} className="mt-2 text-sm">
+                      <div key={key} className="mt-2 text-sm" data-testid={`item-attribute-${key}`}>
                         <span className="font-medium text-gray-700">{key}: </span>
                         <span className="text-gray-600">{value}</span>
                       </div>
@@ -103,6 +108,7 @@ const CartOverlay: React.FC = () => {
 
                   <div className="flex flex-col justify-between items-center">
                     <button
+                      data-testid={`qty-increase-${index}`}
                       onClick={() => updateQuantity(item.product.id, item.selectedAttributes, item.quantity + 1)}
                       className="w-6 h-6 border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                     >
@@ -110,6 +116,7 @@ const CartOverlay: React.FC = () => {
                     </button>
                     <span className="text-lg font-medium my-2">{item.quantity}</span>
                     <button
+                      data-testid={`qty-decrease-${index}`}
                       onClick={() => updateQuantity(item.product.id, item.selectedAttributes, item.quantity - 1)}
                       className="w-6 h-6 border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                     >
@@ -121,7 +128,7 @@ const CartOverlay: React.FC = () => {
             ))}
           </div>
 
-          <div className="mb-6">
+          <div data-testid="cart-total" className="mb-6">
             <div className="flex justify-between items-center text-lg font-medium">
               <span>Total</span>
               <span>${getTotalPrice().toFixed(2)}</span>
@@ -130,12 +137,14 @@ const CartOverlay: React.FC = () => {
 
           <div className="flex justify-between gap-4">
             <button
+              data-testid="clear-cart-btn"
               onClick={clearCart}
               className="w-1/2 py-2 bg-gray-300 hover:bg-gray-400 rounded text-sm"
             >
               Clear Cart
             </button>
             <button
+              data-testid="place-order-btn"
               onClick={handlePlaceOrder}
               disabled={cartItems.length === 0}
               className={`w-1/2 py-2 rounded text-sm text-white ${cartItems.length > 0 ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed'}`}

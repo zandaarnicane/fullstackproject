@@ -40,8 +40,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           query: `query { cart { items { productId name price quantity attributes } } }`
         }),
       });
+
       const result = await response.json();
       const items = result.data?.cart?.items || [];
+
       setCartItems(
         items.map((item: any) => ({
           product: {
@@ -64,15 +66,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // ✅ Automātiski ielādē groza saturu uz lapas ielādi
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
   const addToCart = async (product: Product, selectedAttributes: { [key: string]: string }) => {
     try {
       const attributeList = Object.entries(selectedAttributes).map(([key, value]) => ({ key, value }));
       const total = product.prices[0].amount;
+
       const response = await fetch(GRAPHQL_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,9 +97,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (result.errors) {
         console.error('❌ GraphQL errors:', result.errors);
       } else {
-        console.log('✅ Item added to cart:', result.data);
+        console.log('✅ Produkts pievienots grozam', result.data);
         await fetchCart();
-        setIsCartOpen(true);
+        // <- ŠEIT noņemts setIsCartOpen(true), lai grozs neatveras automātiski
       }
     } catch (error) {
       console.error('❌ Failed to add to cart:', error);
@@ -130,6 +128,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           },
         }),
       });
+
       await fetchCart();
     } catch (error) {
       console.error('❌ Failed to update quantity:', error);
@@ -141,13 +140,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsCartOpen(false);
   };
 
-  const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => total + item.product.prices[0].amount * item.quantity, 0);
-  };
+  const getTotalPrice = () =>
+    cartItems.reduce((total, item) => total + item.product.prices[0].amount * item.quantity, 0);
 
-  const getTotalItems = () => {
-    return cartItems.reduce((total, item) => total + item.quantity, 0);
-  };
+  const getTotalItems = () =>
+    cartItems.reduce((total, item) => total + item.quantity, 0);
+
+  useEffect(() => {
+    fetchCart();
+  }, []);
 
   return (
     <CartContext.Provider
