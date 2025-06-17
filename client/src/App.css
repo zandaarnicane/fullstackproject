@@ -40,3 +40,15 @@
 .read-the-docs {
   color: #888;
 }
+
+.debug-box {
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: red;
+  color: white;
+  font-size: 12px;
+  padding: 6px;
+  z-index: 9999;
+  pointer-events: none;
+}
