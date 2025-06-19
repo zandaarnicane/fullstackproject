@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "name": "vite_react_shadcn_ts",
   "private": true,
   "version": "0.0.0",
@@ -81,7 +80,7 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1"
-=======
+  },
   "dependencies": {
     "lucide-react": "^0.514.0",
     "react": "^19.1.0",
@@ -93,6 +92,5 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@types/react-router-dom": "^5.3.3"
->>>>>>> 9f05f57914f3244ca469445fa8040512c2a0827e
   }
 }
