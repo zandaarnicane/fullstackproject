@@ -1,0 +1,16 @@
+<IfModule mod_rewrite.c>
+  # Enable URL rewriting
+  RewriteEngine On
+
+  # Base URL path (change this if your project is hosted under a subdirectory)
+  RewriteBase /
+
+  # Allow existing files or directories to be accessed normally
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Redirect all other requests to index.html for React Router to handle
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+
